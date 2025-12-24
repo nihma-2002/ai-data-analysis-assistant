@@ -5,6 +5,7 @@ import pandas as pd
 from data_analysis import basic_analysis
 
 app = FastAPI(title="AI-Powered Data Analysis Assistant")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -12,7 +13,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.get("/")
 def health_check():
