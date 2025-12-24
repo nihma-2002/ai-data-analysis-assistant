@@ -1,4 +1,12 @@
 import { useEffect, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 function App() {
   const [backendStatus, setBackendStatus] = useState("Checking backend...");
@@ -6,24 +14,17 @@ function App() {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Check backend health
   useEffect(() => {
     fetch("http://localhost:8000/")
       .then((res) => res.json())
-      .then((data) => {
-        setBackendStatus(data.status);
-      })
-      .catch(() => {
-        setBackendStatus("Backend not reachable");
-      });
+      .then((data) => setBackendStatus(data.status))
+      .catch(() => setBackendStatus("Backend not reachable"));
   }, []);
 
-  // Handle file selection
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
 
-  // Upload CSV to backend
   const handleUpload = async () => {
     if (!file) {
       alert("Please select a CSV file first");
@@ -41,7 +42,6 @@ function App() {
         method: "POST",
         body: formData,
       });
-
       const data = await response.json();
       setAnalysisResult(data);
     } catch (error) {
@@ -49,6 +49,29 @@ function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const renderChart = (chartName, chartConfig) => {
+    const chartData = Object.entries(chartConfig.data).map(
+      ([label, value]) => ({
+        label,
+        value,
+      })
+    );
+
+    return (
+      <div key={chartName} style={{ marginBottom: "40px" }}>
+        <h4>{chartName}</h4>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={chartData}>
+            <XAxis dataKey="label" hide />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="value" fill="#4f46e5" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    );
   };
 
   return (
@@ -72,53 +95,15 @@ function App() {
         <>
           <hr />
 
-          {/* Dataset Overview */}
           <h2>Dataset Overview</h2>
           <p><strong>Rows:</strong> {analysisResult.rows}</p>
           <p><strong>Columns:</strong> {analysisResult.columns}</p>
 
-          {/* Column Types */}
-          <h2>Column Types</h2>
-          <p>
-            <strong>Numeric Columns:</strong>{" "}
-            {analysisResult.numeric_columns.join(", ")}
-          </p>
-          <p>
-            <strong>Categorical Columns:</strong>{" "}
-            {analysisResult.categorical_columns.join(", ")}
-          </p>
-
-          {/* Missing Values */}
-          <h2>Missing Values (%)</h2>
-          <ul>
-            {Object.entries(analysisResult.missing_values_percent)
-              .filter(([_, value]) => value > 0)
-              .map(([column, value]) => (
-                <li key={column}>
-                  {column}: {value}%
-                </li>
-              ))}
-          </ul>
-
-          {/* Summary Statistics */}
-          <h2>Summary Statistics</h2>
-          {Object.keys(analysisResult.summary_statistics).map((column) => (
-            <div key={column} style={{ marginBottom: "20px" }}>
-              <h4>{column}</h4>
-              <table border="1" cellPadding="6">
-                <tbody>
-                  {Object.entries(
-                    analysisResult.summary_statistics[column]
-                  ).map(([stat, value]) => (
-                    <tr key={stat}>
-                      <td><strong>{stat}</strong></td>
-                      <td>{value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
+          <h2>Charts</h2>
+          {Object.entries(analysisResult.charts).map(
+            ([chartName, chartConfig]) =>
+              renderChart(chartName, chartConfig)
+          )}
         </>
       )}
     </div>
